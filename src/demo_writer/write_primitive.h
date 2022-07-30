@@ -1,0 +1,35 @@
+#pragma once
+#include <vector>
+
+void write_vlq(std::vector<unsigned char>& buf, int value);
+void write_vlq(int value);
+void write_byond_string(std::vector<unsigned char>& buf, int string_id);
+void write_byond_resourceid(std::vector<unsigned char>& buf, int resource_id);
+void update_demo_time();
+void write_world_size();
+
+extern bool demo_time_override_enabled;
+extern float demo_time_override;
+
+template<class T>
+class ByteVecRef {
+public:
+	ByteVecRef(std::vector<unsigned char>* vec, int num) {
+		this->vec = vec;
+		this->num = num;
+	}
+	T* operator->() {
+		return (T*)&(*vec)[num];
+	}
+private:
+	std::vector<unsigned char> *vec;
+	int num;
+};
+
+template<class T>
+ByteVecRef<T> write_primitive(std::vector<unsigned char>& buf, const T &value) {
+	int n = buf.size();
+	buf.resize(n + sizeof(T));
+	memcpy(&buf[n], &value, sizeof(T));
+	return ByteVecRef<T>(&buf, n);
+}
