@@ -31,6 +31,9 @@ struct alignas(1) DemoAppearanceFlags {
 
 			unsigned char blend_mode : 3;
 			unsigned char mouse_opacity : 2;
+			unsigned char include_filters : 1;
+			unsigned char override : 1;
+			unsigned char include_vis_flags : 1;
 		};
 		unsigned char bytes[4] = { 0,0,0,0 };
 	};
@@ -59,8 +62,197 @@ int dir_encode_lut[] = {
 	0, 0, 0, 0,
 };
 
+void write_color_matrix(std::vector<unsigned char> &buf, float *cm) {
+	ColorMatrixFormat cmf;
+	if (!cm) {
+		write_primitive(buf, cmf);
+		buf.push_back(0);
+		buf.push_back(0);
+		buf.push_back(0);
+		return;
+	}
+	for (int i = 0; i < 20; i++) {
+		if (cm[i] < 0.0f || cm[i] > 1.0f) {
+			cmf.is_float = true;
+			break;
+		}
+	}
+	if (cm[16] != 0 || cm[17] != 0 || cm[18] != 0) cmf.include_cr_cg_cb = true;
+	if (cm[19] != 0) {
+		if (cm[19] == 1) cmf.ca_one = true;
+		else cmf.include_ca = true;
+	}
+	if (cm[12] != 0 || cm[13] != 0 || cm[14] != 0) cmf.include_ar_ag_ab = true;
+	if (cm[15] != 1) cmf.include_aa = true;
+	if (cm[3] != 0 || cm[7] != 0 || cm[11] != 0) cmf.include_ra_ga_ba = true;
+	if (cm[0] != cm[1] || cm[1] != cm[2] || cm[4] != cm[5] || cm[5] != cm[6] || cm[8] != cm[9] || cm[9] != cm[10] || cm[12] != cm[13] || cm[13] != cm[14]) cmf.include_color = true;
+	write_primitive(buf, cmf);
+	if (cmf.is_float) {
+		write_primitive(buf, cm[0]);
+		if (cmf.include_color) { write_primitive(buf, cm[1]); write_primitive(buf, cm[2]); }
+		if (cmf.include_ra_ga_ba) write_primitive(buf, cm[3]);
+		write_primitive(buf, cm[4]);
+		if (cmf.include_color) { write_primitive(buf, cm[5]); write_primitive(buf, cm[6]); }
+		if (cmf.include_ra_ga_ba) write_primitive(buf, cm[7]);
+		write_primitive(buf, cm[8]);
+		if (cmf.include_color) { write_primitive(buf, cm[9]); write_primitive(buf, cm[10]); }
+		if (cmf.include_ra_ga_ba) write_primitive(buf, cm[11]);
+		if (cmf.include_ar_ag_ab) { write_primitive(buf, cm[12]); }
+		if (cmf.include_ar_ag_ab && cmf.include_color) { write_primitive(buf, cm[13]); write_primitive(buf, cm[14]); }
+		if (cmf.include_aa) write_primitive(buf, cm[15]);
+		if (cmf.include_cr_cg_cb) {
+			write_primitive(buf, cm[16]);
+			write_primitive(buf, cm[17]);
+			write_primitive(buf, cm[18]);
+		}
+		if (cmf.include_ca) write_primitive(buf, cm[19]);
+	}
+	else {
+		unsigned char cmb[20];
+		for (int i = 0; i < 20; i++) cmb[i] = (unsigned char)(cm[i] * 255);
+		buf.push_back(cmb[0]);
+		if (cmf.include_color) { buf.push_back(cmb[1]); buf.push_back(cmb[2]); }
+		if (cmf.include_ra_ga_ba) buf.push_back(cmb[3]);
+		buf.push_back(cmb[4]);
+		if (cmf.include_color) { buf.push_back(cmb[5]); buf.push_back(cmb[6]); }
+		if (cmf.include_ra_ga_ba) buf.push_back(cmb[7]);
+		buf.push_back(cmb[8]);
+		if (cmf.include_color) { buf.push_back(cmb[9]); buf.push_back(cmb[10]); }
+		if (cmf.include_ra_ga_ba) buf.push_back(cmb[11]);
+		if (cmf.include_ar_ag_ab) { buf.push_back(cmb[12]); }
+		if (cmf.include_ar_ag_ab && cmf.include_color) { buf.push_back(cmb[13]); buf.push_back(cmb[14]); }
+		if (cmf.include_aa) buf.push_back(cmb[15]);
+		if (cmf.include_cr_cg_cb) {
+			buf.push_back(cmb[16]);
+			buf.push_back(cmb[17]);
+			buf.push_back(cmb[18]);
+		}
+		if (cmf.include_ca) buf.push_back(cmb[19]);
+	}
+}
+
+void write_filter(std::vector<unsigned char> &buf, int filter_id) {
+	if (filter_id == 0xFFFF || !(*Core::appearance_table) || filter_id >= (**Core::appearance_table).filters_length) {
+		write_primitive(buf, 0xFFFF);
+		return;
+	}
+	Filter* filter = (**Core::appearance_table).filters[filter_id];
+	if (!filter) {
+		write_primitive(buf, 0xFFFF);
+		return;
+	}
+
+	DemoWriterIdFlags& dif = get_demo_id_flags(filter_id);
+	bool do_write = !dif.filter_written;
+	dif.filter_written = 1;
+	write_primitive(buf, (filter_id & 0xFFFFFF) | (do_write << 24));
+	if (!do_write) {
+		return;
+	}
+
+	const char *str = filter->render_source;
+
+	write_primitive(buf, filter->type);
+	write_primitive(buf, filter->id);
+	switch (filter->type) {
+	case FilterType::BLUR:
+		write_primitive(buf, filter->x);
+		write_primitive(buf, filter->y);
+		write_primitive(buf, filter->size);
+		break;
+	case FilterType::OUTLINE:
+		write_primitive(buf, filter->size);
+		write_primitive(buf, filter->color_alpha);
+		write_primitive(buf, (unsigned char)filter->flags);
+		break;
+	case FilterType::DROP_SHADOW:
+		write_primitive(buf, filter->x);
+		write_primitive(buf, filter->y);
+		write_primitive(buf, filter->size);
+		write_primitive(buf, filter->offset);
+		write_primitive(buf, filter->color_alpha);
+		break;
+	case FilterType::MOTION_BLUR:
+		write_primitive(buf, filter->x);
+		write_primitive(buf, filter->y);
+		break;
+	case FilterType::WAVE:
+		write_primitive(buf, filter->x);
+		write_primitive(buf, filter->y);
+		write_primitive(buf, filter->size);
+		write_primitive(buf, filter->offset);
+		write_primitive(buf, (unsigned char)filter->flags);
+		break;
+	case FilterType::RIPPLE:
+		write_primitive(buf, filter->x);
+		write_primitive(buf, filter->y);
+		write_primitive(buf, filter->size);
+		write_primitive(buf, filter->repeat);
+		write_primitive(buf, filter->radius);
+		write_primitive(buf, filter->falloff);
+		write_primitive(buf, (unsigned char)filter->flags);
+		break;
+	case FilterType::ALPHA:
+		write_primitive(buf, filter->x);
+		write_primitive(buf, filter->y);
+		write_byond_resourceid(buf, filter->icon);
+		while (str && *str) buf.push_back(*(str++));
+		buf.push_back(0);
+			break;
+	case FilterType::DISPLACE:
+		write_primitive(buf, filter->x);
+		write_primitive(buf, filter->y);
+		write_primitive(buf, filter->size);
+		write_byond_resourceid(buf, filter->icon);
+		while (str && *str) buf.push_back(*(str++));
+		buf.push_back(0);
+		break;
+	case FilterType::COLOR:
+		write_color_matrix(buf, filter->color_matrix);
+		write_primitive(buf, (unsigned char)filter->space);
+		break;
+	case FilterType::RADIAL_BLUR:
+		write_primitive(buf, filter->x);
+		write_primitive(buf, filter->y);
+		write_primitive(buf, filter->size);
+		break;
+	case FilterType::ANGULAR_BLUR:
+		write_primitive(buf, filter->x);
+		write_primitive(buf, filter->y);
+		write_primitive(buf, filter->size);
+		break;
+	case FilterType::RAYS:
+		write_primitive(buf, filter->x);
+		write_primitive(buf, filter->y);
+		write_primitive(buf, filter->size);
+		write_primitive(buf, filter->color_alpha);
+		write_primitive(buf, filter->offset);
+		write_primitive(buf, filter->density);
+		write_primitive(buf, filter->threshold);
+		write_primitive(buf, filter->factor);
+		write_primitive(buf, (unsigned char)filter->flags);
+		break;
+	case FilterType::LAYER:
+		write_primitive(buf, filter->x);
+		write_primitive(buf, filter->y);
+		while (str && *str) buf.push_back(*(str++));
+		buf.push_back(0);
+		write_byond_resourceid(buf, filter->icon);
+		write_primitive(buf, (unsigned char)filter->flags);
+		write_color_matrix(buf, filter->color_matrix);
+		for (int i = 0; i < 6; i++) write_primitive(buf, filter->transform ? filter->transform[i] : 0);
+		write_primitive(buf, (unsigned char)filter->blend_mode);
+		break;
+	case FilterType::BLOOM:
+		write_primitive(buf, filter->color_alpha);
+		write_primitive(buf, filter->size);
+		write_primitive(buf, filter->offset);
+		break;
+	}
+}
+
 int write_appearance(std::vector<unsigned char> &buf, int appearance_id) {
-	if (appearance_id == 0xFFFF || appearance_id >= (**Core::appearance_table).length) {
+	if (appearance_id == 0xFFFF || !(*Core::appearance_table) || appearance_id >= (**Core::appearance_table).length) {
 		write_primitive(buf, 0xFFFF);
 		return 0xFFFF;
 	}
@@ -82,6 +274,7 @@ int write_appearance(std::vector<unsigned char> &buf, int appearance_id) {
 	daf->density = appearance->density;
 	daf->gender = appearance->gender;
 	daf->dir_override = appearance->dir_override;
+	daf->override = appearance->override;
 	daf->animate_movement = (appearance->animate_movement + 1) & 3;
 	daf->blend_mode = appearance->blend_mode;
 	daf->mouse_opacity = appearance->mouse_opacity;
@@ -176,65 +369,20 @@ int write_appearance(std::vector<unsigned char> &buf, int appearance_id) {
 	if (appearance->color_matrix != nullptr) {
 		daf->include_color_matrix = true;
 		float* cm = appearance->color_matrix;
-		ColorMatrixFormat cmf;
-		for (int i = 0; i < 20; i++) {
-			if (cm[i] < 0.0f || cm[i] > 1.0f) {
-				cmf.is_float = true;
-				break;
-			}
+		write_color_matrix(buf, cm);
+	}
+	if (appearance->filters != 0xFFFF) {
+		TableHolder2 *id_lists = Core::appearance_list_table;
+		if (id_lists->length > appearance->filters && id_lists->elements[appearance->filters]) {
+			AppearanceList* l = (AppearanceList*)id_lists->elements[appearance->filters];
+			write_vlq(buf, l->len);
+			daf->include_filters = true;
+			for (int i = 0; i < l->len; i++) write_filter(buf, l->ids[i]);
 		}
-		if (cm[16] != 0 || cm[17] != 0 || cm[18] != 0) cmf.include_cr_cg_cb = true;
-		if (cm[19] != 0) {
-			if (cm[19] == 1) cmf.ca_one = true;
-			else cmf.include_ca = true;
-		}
-		if (cm[12] != 0 || cm[13] != 0 || cm[14] != 0) cmf.include_ar_ag_ab = true;
-		if (cm[15] != 1) cmf.include_aa = true;
-		if (cm[3] != 0 || cm[7] != 0 || cm[11] != 0) cmf.include_ra_ga_ba = true;
-		if (cm[0] != cm[1] || cm[1] != cm[2] || cm[4] != cm[5] || cm[5] != cm[6] || cm[8] != cm[9] || cm[9] != cm[10] || cm[12] != cm[13] || cm[13] != cm[14]) cmf.include_color = true;
-		write_primitive(buf, cmf);
-		if (cmf.is_float) {
-			write_primitive(buf, cm[0]);
-			if (cmf.include_color) { write_primitive(buf, cm[1]); write_primitive(buf, cm[2]); }
-			if (cmf.include_ra_ga_ba) write_primitive(buf, cm[3]);
-			write_primitive(buf, cm[4]);
-			if (cmf.include_color) { write_primitive(buf, cm[5]); write_primitive(buf, cm[6]); }
-			if (cmf.include_ra_ga_ba) write_primitive(buf, cm[7]);
-			write_primitive(buf, cm[8]);
-			if (cmf.include_color) { write_primitive(buf, cm[9]); write_primitive(buf, cm[10]); }
-			if (cmf.include_ra_ga_ba) write_primitive(buf, cm[11]);
-			if (cmf.include_ar_ag_ab) { write_primitive(buf, cm[12]); }
-			if (cmf.include_ar_ag_ab && cmf.include_color) { write_primitive(buf, cm[13]); write_primitive(buf, cm[14]); }
-			if (cmf.include_aa) write_primitive(buf, cm[15]);
-			if (cmf.include_cr_cg_cb) {
-				write_primitive(buf, cm[16]);
-				write_primitive(buf, cm[17]);
-				write_primitive(buf, cm[18]);
-			}
-			if (cmf.include_ca) write_primitive(buf, cm[19]);
-		}
-		else {
-			unsigned char cmb[20];
-			for (int i = 0; i < 20; i++) cmb[i] = (unsigned char)(cm[i] * 255);
-			buf.push_back(cmb[0]);
-			if (cmf.include_color) { buf.push_back(cmb[1]); buf.push_back(cmb[2]); }
-			if (cmf.include_ra_ga_ba) buf.push_back(cmb[3]);
-			buf.push_back(cmb[4]);
-			if (cmf.include_color) { buf.push_back(cmb[5]); buf.push_back(cmb[6]); }
-			if (cmf.include_ra_ga_ba) buf.push_back(cmb[7]);
-			buf.push_back(cmb[8]);
-			if (cmf.include_color) { buf.push_back(cmb[9]); buf.push_back(cmb[10]); }
-			if (cmf.include_ra_ga_ba) buf.push_back(cmb[11]);
-			if (cmf.include_ar_ag_ab) { buf.push_back(cmb[12]); }
-			if (cmf.include_ar_ag_ab && cmf.include_color) { buf.push_back(cmb[13]); buf.push_back(cmb[14]); }
-			if (cmf.include_aa) buf.push_back(cmb[15]);
-			if (cmf.include_cr_cg_cb) {
-				buf.push_back(cmb[16]);
-				buf.push_back(cmb[17]);
-				buf.push_back(cmb[18]);
-			}
-			if (cmf.include_ca) buf.push_back(cmb[19]);
-		}
+	}
+	if (appearance->vis_flags != 0) {
+		daf->include_vis_flags = true;
+		write_primitive(buf, (unsigned char)appearance->vis_flags);
 	}
 	return appearance_id;
 }

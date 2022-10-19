@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include "../core/byond_structures.h"
 
 void write_vlq(std::vector<unsigned char>& buf, int value);
 void write_vlq(int value);
@@ -32,4 +33,13 @@ ByteVecRef<T> write_primitive(std::vector<unsigned char>& buf, const T &value) {
 	buf.resize(n + sizeof(T));
 	memcpy(&buf[n], &value, sizeof(T));
 	return ByteVecRef<T>(&buf, n);
+}
+
+inline unsigned int ref_int(Value val) {
+	if (!val.type) return 0;
+	return (val.type << 24) | (val.value & 0xFFFFFF);
+}
+inline unsigned int ref_int_relative(Value val, unsigned int parent) {
+	if (!val.type) return 0;
+	return (val.type << 24) | 0x80000000 | ((val.value - parent) & 0xFFFFFF);
 }

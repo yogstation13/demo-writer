@@ -17,11 +17,14 @@ namespace Core {
 	void Alert(int what);
 
 	std::string GetStringFromId(unsigned int id);
+	Value DecReturn(Value val);
 
 	extern std::unique_ptr<RefTable<Obj>> obj_table;
-	//extern TableHolder2* datum_table;
+	extern std::unique_ptr<RefTable<Datum>> datum_table;
 	//extern TableHolder2* list_table; //list list honk
+	extern std::unique_ptr<RefTable<Client>> client_table;
 	extern std::unique_ptr<RefTable<Mob>> mob_table;
+	extern std::unique_ptr<RefTable<ImageOverlay>> image_table;
 	extern TableHolder2* appearance_list_table;
 	extern AppearanceTable** appearance_table;
 	extern TurfTableHolder* turf_table;

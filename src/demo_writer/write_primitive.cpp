@@ -123,7 +123,7 @@ float demo_time_override = 0;
 
 void update_demo_time() {
 	float time = demo_time_override_enabled ? demo_time_override : GetVariable({ WORLD_D, {0} }, 0x4f).valuef; // world.time
-	if (last_world_time >= time) return;
+	if (!(last_world_time < time)) return;
 	last_world_time = time;
 	demo_file_handle.put(0x00); // Chunk ID
 	demo_file_handle.put(0x04); // Chunk Length

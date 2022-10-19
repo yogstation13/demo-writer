@@ -12,6 +12,8 @@ struct alignas(1) DemoWriterIdFlags {
 			unsigned char mob_written : 1;
 			unsigned char turf_written : 1;
 			unsigned char resource_written : 1;
+			unsigned char filter_written : 1;
+			unsigned char image_written : 1;
 		};
 		unsigned char byte = 0;
 	};
@@ -19,11 +21,13 @@ struct alignas(1) DemoWriterIdFlags {
 	template<> inline bool get_written<Obj>() { return obj_written; }
 	template<> inline bool get_written<Mob>() { return mob_written; }
 	template<> inline bool get_written<Turf>() { return turf_written; }
+	template<> inline bool get_written<ImageOverlay> () { return image_written; }
 
 	template<class T> inline void set_written(bool f);
 	template<> inline void set_written<Obj>(bool f) { obj_written = f; }
 	template<> inline void set_written<Mob>(bool f) { mob_written = f; }
 	template<> inline void set_written<Turf>(bool f) { turf_written = f; }
+	template<> inline void set_written<ImageOverlay>(bool f) { image_written = f; }
 };
 
 extern std::vector<DemoWriterIdFlags> demo_id_flags;

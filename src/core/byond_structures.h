@@ -6,9 +6,12 @@
 #ifdef _WIN32
 #define REGPARM3
 #define REGPARM2
+#define FASTCALL_THIS void *this_, int edx
+#define PASS_FASTCALL_THIS this_, edx
 #else
 #define REGPARM3 __attribute__((regparm(3)))
 #define REGPARM2 __attribute__((regparm(2)))
+#define PASS_FASTCALL_THIS this_
 #endif
 
 struct String
@@ -28,6 +31,12 @@ struct Value
 		float valuef;
 	};
 };
+inline Value ValueFloat(float f) {
+	Value v;
+	v.type = NUMBER;
+	v.valuef = f;
+	return v;
+}
 
 struct TableHolder2
 {
@@ -44,6 +53,12 @@ struct RefTable
 	RefTable() : elements(dummy_elements), length(dummy_length) {}
 	T**& elements;
 	unsigned int& length;
+	T *GetItem(unsigned int id) {
+		if (id < this->length) {
+			return this->elements[id];
+		}
+		return nullptr;
+	}
 private:
 	T** dummy_elements = nullptr;
 	unsigned int dummy_length = 0;
@@ -63,6 +78,29 @@ struct VarListEntry
 	std::uint32_t unknown;
 	std::uint32_t name_id;
 	Value value;
+};
+
+struct Client {
+	unsigned char unk_0[0x4];
+	int address;
+	unsigned char unk_8[0x64];
+	int key;
+	int ckey;
+	unsigned char unk_74[4];
+	int gender;
+	Value mob;
+	Value eye;
+	unsigned char unk_8c[0x20];
+	unsigned char dir;
+	unsigned char unk_ad[0x3];
+	unsigned int update_flags;
+	unsigned char unk_b4[0x58];
+	Value lazy_eye;
+	Value view;
+	unsigned char unk_11c[0x8];
+	unsigned short view_width;
+	unsigned short view_height;
+	unsigned char unk_128[0x358];
 };
 
 struct Obj
@@ -96,6 +134,19 @@ struct Obj
 	char unknown5[64];
 };
 
+struct ImageOverlay
+{
+	int appearance;
+	unsigned char unk_04[0x14];
+	Value loc;
+	unsigned char unk_20[0x4];
+	TableHolder3* vis_contents; // 50
+	TableHolder3* vis_locs; // 54
+	unsigned char unk_2c[0x10];
+	int refcount;
+	unsigned char unk_40[0x10];
+};
+
 struct Datum
 {
 	std::uint32_t type;
@@ -104,6 +155,7 @@ struct Datum
 	std::uint16_t modified_vars_capacity;
 	std::uint32_t flags;
 	std::uint32_t refcount;
+	std::uint32_t dm_interface;
 };
 
 struct Mob
@@ -134,9 +186,15 @@ struct Mob
 	int appearance; // 64
 	int appearance2; // 68
 	int appearance3; // 6c
-	char unknown5[0x4C];
-	void* unknown_list3;
-	char unknown6[0x10];
+	char unknown5[0x4C]; // 70
+	void* unknown_list3; // bc
+	unsigned short client; // c0
+	unsigned short unknown6;
+	unsigned short sight; // c4
+	unsigned short see_infrared : 1; // c6
+	unsigned char see_in_dark; // c8
+	unsigned char see_invisible; // c9
+
 };
 
 struct Turf { // According to lummox, this struct also includes info about atoms overhanging and animations too
@@ -277,7 +335,7 @@ struct Appearance
 	unsigned char matrix_flag; // b1
 	short plane; // b2
 	
-	int unk_b4; // probably filters imo
+	int filters; // filters
 	int render_source_str; // b8
 	int render_target_str; // bc
 	
@@ -295,16 +353,65 @@ struct Appearance
 	int refcount; // e4
 };
 
+struct AppearanceList // used for overlays, underlays, filters, etc
+{
+	short len;
+	int unk;
+	int* ids;
+};
+
+enum class FilterType : unsigned char {
+	BLUR = 1, //
+	OUTLINE = 2, //
+	DROP_SHADOW = 3, //
+	MOTION_BLUR = 4,
+	WAVE = 5, //
+	RIPPLE = 6,
+	ALPHA = 7, //
+	DISPLACE = 8,
+	COLOR = 9,
+	RADIAL_BLUR = 10,
+	ANGULAR_BLUR = 11,
+	RAYS = 12,
+	LAYER = 13,
+	BLOOM = 14
+};
+
+struct Filter
+{
+	FilterType type;
+	unsigned char id;
+	union { unsigned short flags; unsigned short space; };
+	unsigned int unk4;
+	float size;
+	union { float offset; float radius; };
+	float x;
+	float y;
+	union { float density; float repeat; };
+	union { float threshold; float falloff; };
+	float factor;
+	union {
+		struct {
+			unsigned char color_r;
+			unsigned char color_g;
+			unsigned char color_b;
+			unsigned char alpha;
+		};
+		unsigned int color_alpha;
+	};
+	unsigned int icon;
+	const char* render_source; // wtf why's this just a straight c string?
+	float *color_matrix;
+	float *transform;
+	unsigned char blend_mode;
+};
+
 struct AppearanceTable
 {
 	char unk[0x40];
 	Appearance** elements;
 	int length;
-};
-
-struct AppearanceList // used for overlays, underlays, etc
-{
-	short len;
-	int unk;
-	int* ids;
+	char unk2[0x2c];
+	Filter** filters;
+	int filters_length;
 };
