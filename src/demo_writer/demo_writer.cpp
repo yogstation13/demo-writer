@@ -179,6 +179,7 @@ extern "C" EXPORT const char* demo_start(int n_args, const char** args)
 	INSTALL_HOOK(RemoveFromScreen);
 	INSTALL_HOOK(SendMapsClient);
 	INSTALL_HOOK(Output);
+	make_animate_hook();
 
 	demo_file_handle.put(0xCB);
 	demo_file_handle.put(0x0); // version number
