@@ -133,9 +133,9 @@ void write_world_size() {
 	struct {
 		char chunk_id = 1;
 		char chunk_length = 0x6;
-		short maxx = Core::turf_table->maxx;
-		short maxy = Core::turf_table->maxy;
-		short maxz = Core::turf_table->maxz;
+		short maxx = Core::world_size->maxx;
+		short maxy = Core::world_size->maxy;
+		short maxz = Core::world_size->maxz;
 	} data;
 	demo_file_handle.write((char*)&data, sizeof(data));
 }

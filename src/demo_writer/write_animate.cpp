@@ -80,9 +80,23 @@ void pre_animate_hook(void *some_struct, Value args) {
 	DecRefCount(animate_args);
 	animate_args = args;
 	IncRefCount(animate_args);
-	DecRefCount(last_animate_appearance);
-	last_animate_appearance = GetVariable(last_animate_obj, 0x106);
-	IncRefCount(last_animate_appearance);
+
+	Value len_value = GetVariable(animate_args, 0x39);
+	int len = len_value.valuef;
+	Value firstArg = { NULL_D, {0} };
+	if (len) firstArg = Core::DecReturn(GetAssocElement(animate_args, ValueFloat(1.0f)));
+	Value animate_obj;
+	if (firstArg.type == MOB || firstArg.type == OBJ || firstArg.type == TURF || firstArg.type == IMAGE) {
+		animate_obj = firstArg;
+	} else {
+		animate_obj = last_animate_obj;
+	}
+
+	if(animate_obj.type) {
+		DecRefCount(last_animate_appearance);
+		last_animate_appearance = GetVariable(animate_obj, 0x106);
+		IncRefCount(last_animate_appearance);
+	}
 	AnimateStartFun(some_struct, args);
 }
 #endif

@@ -64,7 +64,7 @@ HOOK_DEF(void, SetLoc)(Value atom, Value loc) {
 	oSetLoc(atom, loc);
 }
 
-HOOK_DEF(void, SetAppearance)(Value atom, int appearance) {
+HOOK_DEF(void REGPARM3, SetAppearance)(Value atom, int appearance) {
 	oSetAppearance(atom, appearance);
 	mark_atom_dirty(atom);
 }
@@ -123,7 +123,7 @@ HOOK_DEF(void, RemoveFromScreen)(Value thing, unsigned short client) {
 	update_client_screen(client);
 	oRemoveFromScreen(thing, client);
 }
-HOOK_DEF(void, SendMapsClient)(unsigned short client) {
+HOOK_DEF(void REGPARM3, SendMapsClient)(unsigned short client) {
 	Client *clientobj = Core::client_table->GetItem(client);
 	if (clientobj && clientobj->update_flags & 8) {
 		update_client_screen(client);

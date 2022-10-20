@@ -212,6 +212,8 @@ static int subhook_disasm(void *src, int *reloc_op_offset) {
   uint8_t opcode = 0;
   int found_opcode = false;
 
+  if(code[0] == 0x0f && code[1] == 0xb7 && code[2] == 0xc0) return 3;
+
   for (i = 0; i < sizeof(prefixes) / sizeof(*prefixes); i++) {
     if (code[len] == prefixes[i]) {
       len++;

@@ -45,16 +45,16 @@ struct TableHolder2
 	unsigned int length;
 };
 
-template<class T>
+template<class T, class S = unsigned int>
 struct RefTable
 {
-	RefTable(T*** e, unsigned int* l) : elements(*e), length(*l) {}
+	RefTable(T*** e, S* l) : elements(*e), length(*l) {}
 	RefTable(TableHolder2* th) : elements(*(T***)&th->elements), length(th->length) {}
-	RefTable(void* base, int elements_offset, int length_offset) : elements(**(T****)((int)base+elements_offset)), length(**(unsigned int**)((int)base + length_offset)) {}
+	RefTable(void* base, int elements_offset, int length_offset) : elements(**(T****)((int)base+elements_offset)), length(**(S**)((int)base + length_offset)) {}
 	RefTable() : elements(dummy_elements), length(dummy_length) {}
 	T**& elements;
-	unsigned int& length;
-	T *GetItem(unsigned int id) {
+	S& length;
+	T *GetItem(S id) {
 		if (id < this->length) {
 			return this->elements[id];
 		}
@@ -62,7 +62,7 @@ struct RefTable
 	}
 private:
 	T** dummy_elements = nullptr;
-	unsigned int dummy_length = 0;
+	S dummy_length = 0;
 };
 
 struct TableHolder3
@@ -84,7 +84,11 @@ struct VarListEntry
 struct Client {
 	unsigned char unk_0[0x4];
 	int address;
+#ifdef _WIN32
 	unsigned char unk_8[0x64];
+#else
+	unsigned char unk_8[0x44];
+#endif
 	int key;
 	int ckey;
 	unsigned char unk_74[4];
@@ -187,7 +191,11 @@ struct Mob
 	int appearance; // 64
 	int appearance2; // 68
 	int appearance3; // 6c
+#ifdef _WIN32
 	char unknown5[0x4C]; // 70
+#else
+	char unknown5[0x48];
+#endif
 	void* unknown_list3; // bc
 	unsigned short client; // c0
 	unsigned short unknown6;
@@ -233,19 +241,37 @@ struct TurfSharedInfo {
 	int unk_1c;
 };
 
-struct TurfTableHolder {
-	int* shared_info_id_table;
-	unsigned char* existence_table;
+#ifdef _WIN32
+struct WorldSizeHolder {
 	int turf_count;
-	int maxx;
-	int maxy;
-	int maxz;
+	unsigned short maxx;
+	unsigned short gap1;
+	unsigned short maxy;
+	unsigned short gap2;
+	unsigned short maxz;
 };
+#else
+struct WorldSizeHolder {
+	int turf_count;
+	int gap;
+	unsigned short maxx;
+	unsigned short maxy;
+	unsigned short maxz;
+};
+#endif
+
+#ifdef _WIN32
 struct TurfHashtableHolder {
 	Turf** elements;
 	int size;
-	int mask;
+	unsigned short mask;
 };
+#else
+struct TurfHashtableHolder {
+	unsigned short mask;
+	Turf** elements;
+};
+#endif
 
 enum class AppearanceRbtColor : bool
 {
@@ -290,6 +316,7 @@ struct Appearance
 	unsigned long long unk_4a_8 : 2;
 	
 	unsigned long long appearance_flags : 12;
+	unsigned long long other_bits : 31;
 	
 	unsigned char dir; // 50
 	unsigned char invisibility;
@@ -349,7 +376,9 @@ struct Appearance
 	int unk_d0;
 	int unk_d4;
 	int unk_d8;
+#ifdef _WIN32
 	int unk_dc;
+#endif
 	float *color_matrix; // e0
 	int refcount; // e4
 };

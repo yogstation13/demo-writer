@@ -286,7 +286,7 @@ public:
 
 template<>
 inline int AtomUpdateBuffer<Turf, 0x2, false, false, false>::get_table_length() {
-	return Core::turf_table->turf_count;
+	return Core::world_size->turf_count;
 }
 template<>
 inline int AtomUpdateBuffer<Obj, 0x3, true, true, false>::get_table_length() {
@@ -302,10 +302,10 @@ inline int AtomUpdateBuffer<ImageOverlay, 0x5, true, false, false>::get_table_le
 }
 template<>
 inline Turf *AtomUpdateBuffer<Turf, 0x2, false, false, false>::get_element(int id) {
-	if (id < Core::turf_table->turf_count || Core::turf_table->existence_table[id] == 0) {
+	if (id >= Core::world_size->turf_count || (*Core::turf_existence_table)[id] == 0) {
 		return nullptr;
 	}
-	Turf* ref = Core::turf_hashtable->elements[id & Core::turf_hashtable->mask];
+	Turf* ref = (*Core::turf_hashtable)[id & *Core::turf_hashtable_mask];
 	while (ref && ref->id != id) {
 		ref = ref->next;
 	}
@@ -325,8 +325,8 @@ inline ImageOverlay* AtomUpdateBuffer<ImageOverlay, 0x5, true, false, false>::ge
 }
 template<>
 inline int AtomUpdateBuffer<Turf, 0x2, false, false, false>::get_appearance(Turf* turf, int id) {
-	if (id >= Core::turf_table->turf_count) return 0xFFFF;
-	int shared_id = Core::turf_table->shared_info_id_table[id];
+	if (id >= Core::world_size->turf_count) return 0xFFFF;
+	int shared_id = (*Core::turf_table)[id];
 	return (*Core::turf_shared_info_table)[shared_id]->appearance;
 }
 template<>

@@ -9,12 +9,16 @@ std::unique_ptr<RefTable<Datum>> Core::datum_table;
 //TableHolder2* Core::list_table = nullptr;
 std::unique_ptr<RefTable<Mob>> Core::mob_table;
 std::unique_ptr<RefTable<ImageOverlay>> Core::image_table;
-std::unique_ptr<RefTable<Client>> Core::client_table;
+std::unique_ptr<RefTable<Client, unsigned short>> Core::client_table;
 TableHolder2* Core::appearance_list_table = nullptr;
 AppearanceTable** Core::appearance_table = nullptr;
-TurfTableHolder* Core::turf_table = nullptr;
-TurfHashtableHolder* Core::turf_hashtable = nullptr;
+
+int** Core::turf_table = nullptr;
+Turf*** Core::turf_hashtable = nullptr;
+unsigned short* Core::turf_hashtable_mask = nullptr;
+unsigned char** Core::turf_existence_table = nullptr;
 TurfSharedInfo*** Core::turf_shared_info_table = nullptr;
+WorldSizeHolder* Core::world_size = nullptr;
 
 void Core::Alert(const std::string& what) {
 #ifdef _WIN32

@@ -61,7 +61,7 @@ bool Core::find_functions()
 	void* del_datum_ptr = Pocket::Sigscan::FindPattern(BYONDCORE, "?? ?? ?? ?? 73 55 A1 ?? ?? ?? ?? 8B 04 88 85 C0 74 49 8B 50 18 81 FA 00 00 00 70");
 	TRUE_OR_DIE(del_datum_ptr);
 	datum_table = std::make_unique<RefTable<Datum>>((void*)del_datum_ptr, 7, 0);
-	client_table = std::make_unique<RefTable<Client>>((void*)AddToScreen, 21, 11);
+	client_table = std::make_unique<RefTable<Client, unsigned short>>((void*)AddToScreen, 21, 11);
 	image_table = std::make_unique<RefTable<ImageOverlay>>((void*)GetVisContents, 0x86, 0x7F);
 	appearance_table = *(AppearanceTable***)Pocket::Sigscan::FindPattern(BYONDCORE, "55 8b ec a1 ?? ?? ?? ?? 8b 4d 08 3b 48 44 73 08 8b 40 40 8b 04 88 5d c3", 4);
 	void* get_id_list_ptr = Pocket::Sigscan::FindPattern(BYONDCORE, "55 8b ec 83 ec 0c 53 56 57 ff 75 08 e8 ?? ?? ?? ?? 83 c4 04 85 c0", 13);
@@ -70,9 +70,12 @@ bool Core::find_functions()
 	appearance_list_table = *(TableHolder2**)((int)get_id_list + 19);
 	char* get_shared_turf_ptr = (char*)Pocket::Sigscan::FindPattern(BYONDCORE, "55 8b ec 8b 4d 08 3b 0d ?? ?? ?? ?? 73 12 a1 ?? ?? ?? ?? 8b 0c 88 a1 ?? ?? ?? ?? 8b 04 88 5d c3 33 c0 5d c3");
 	TRUE_OR_DIE(get_shared_turf_ptr)
-	turf_table = *(TurfTableHolder**)(get_shared_turf_ptr + 15);
+	turf_table = *(int***)(get_shared_turf_ptr + 15);
+	turf_existence_table = ((int)turf_table + 4);
+	world_size = (WorldSizeHolder*)((int)turf_table + 8);
 	turf_shared_info_table = *(TurfSharedInfo****)(get_shared_turf_ptr + 23);
-	turf_hashtable = *(TurfHashtableHolder**)Pocket::Sigscan::FindPattern(BYONDCORE, "55 8b ec a1 ?? ?? ?? ?? 8b 55 08 23 c2 0f b7 c8 a1 ?? ?? ?? ??", 17);
+	turf_hashtable = *(Turf****)Pocket::Sigscan::FindPattern(BYONDCORE, "55 8b ec a1 ?? ?? ?? ?? 8b 55 08 23 c2 0f b7 c8 a1 ?? ?? ?? ??", 17);
+	turf_hashtable_mask = (int)(turf_hashtable + 8);
 	TRUE_OR_DIE(turf_hashtable);
 #else
 	FIND_OR_DIE(GetStringTableEntry, "55 89 E5 83 EC 18 8B 45 ?? 39 05 ?? ?? ?? ?? 76 ?? 8B 15 ?? ?? ?? ?? 8B 04 ??");
@@ -84,8 +87,8 @@ bool Core::find_functions()
 	FIND_OR_DIE(SetAppearance, "55 89 e5 83 ec 38 3c 54 89 5d f4 89 cb");
 	FIND_OR_DIE(SetPixelX, "55 89 e5 57 56 53 81 ec 4c 01 00 00 8b 75 08 8b 5d 0c 0f b7 7d 10");
 	FIND_OR_DIE(SetPixelY, "55 89 e5 57 56 53 81 ec 6c 01 00 00 8b 75 08 8b 5d 0c 0f b7 7d 10");
-	FIND_OR_DIE(SetPixelW, "55 89 e5 81 ec 38 01 00 00 89 7d fc 8b 7d 08 89 5d f4 0f b7 5d 10 89 75 f8 8b 75 0c 89 f8 3c 03 0f 84 d2 01 00 00 3c 02 0f 84 f2 00 00 00 89 3c 24 89 74 24 04 e8 ?? ?? ?? ?? 8b 15 d8 a9 67 00 89 85 f0 fe ff ff 8b 8d f0 fe ff ff 31 c0 3b 4a 44 0f 82 b9 01 00 00 8d 8d 04 ff ff ff 89 44 24 04 89 0c 24 e8 ?? ?? ?? ?? 89 d8 66 2b 85 5c ff ff ff");
-	FIND_OR_DIE(SetPixelZ, "55 89 e5 81 ec 38 01 00 00 89 7d fc 8b 7d 08 89 5d f4 0f b7 5d 10 89 75 f8 8b 75 0c 89 f8 3c 03 0f 84 d2 01 00 00 3c 02 0f 84 f2 00 00 00 89 3c 24 89 74 24 04 e8 ?? ?? ?? ?? 8b 15 d8 a9 67 00 89 85 f0 fe ff ff 8b 8d f0 fe ff ff 31 c0 3b 4a 44 0f 82 b9 01 00 00 8d 8d 04 ff ff ff 89 44 24 04 89 0c 24 e8 ?? ?? ?? ?? 89 d8 66 2b 85 5e ff ff ff");
+	FIND_OR_DIE(SetPixelW, "55 89 e5 81 ec 38 01 00 00 89 7d fc 8b 7d 08 89 5d f4 0f b7 5d 10 89 75 f8 8b 75 0c 89 f8 3c 03 0f 84 d2 01 00 00 3c 02 0f 84 f2 00 00 00 89 3c 24 89 74 24 04 e8 ?? ?? ?? ?? 8b 15 ?? ?? ?? ?? 89 85 f0 fe ff ff 8b 8d f0 fe ff ff 31 c0 3b 4a 44 0f 82 b9 01 00 00 8d 8d 04 ff ff ff 89 44 24 04 89 0c 24 e8 ?? ?? ?? ?? 89 d8 66 2b 85 5c ff ff ff");
+	FIND_OR_DIE(SetPixelZ, "55 89 e5 81 ec 38 01 00 00 89 7d fc 8b 7d 08 89 5d f4 0f b7 5d 10 89 75 f8 8b 75 0c 89 f8 3c 03 0f 84 d2 01 00 00 3c 02 0f 84 f2 00 00 00 89 3c 24 89 74 24 04 e8 ?? ?? ?? ?? 8b 15 ?? ?? ?? ?? 89 85 f0 fe ff ff 8b 8d f0 fe ff ff 31 c0 3b 4a 44 0f 82 b9 01 00 00 8d 8d 04 ff ff ff 89 44 24 04 89 0c 24 e8 ?? ?? ?? ?? 89 d8 66 2b 85 5e ff ff ff");
 	FIND_OR_DIE(SetMovableDir, "55 89 e5 81 ec 38 01 00 00 8b 45 08 89 75 f8 0f b6 55 10 89 7d fc 8b 7d 0c 89 5d f4 3c 03 89 c6 89 85 f4 fe ff ff");
 	FIND_OR_DIE(SetLoc, "55 89 e5 83 ec 38 89 5d f4 8b 45 0c 89 75 f8 8b 5d 10 8b 75 14 89 7d fc 0f b6 7d 08 89 45 e4 89 1c 24 89 74 24 04");
 	FIND_OR_DIE(SpliceAppearance, "55 89 e5 83 ec 18 89 5d f8 8b 5d 08 89 75 fc 8b 75 0c 8b 4b 38 89 f0 d3 e8 3b 43 28 89 c1");
@@ -94,7 +97,7 @@ bool Core::find_functions()
 	FIND_OR_DIE(Output, "55 89 e5 81 ec 98 01 00 00 89 5d f4 89 c3 8b 45 0c 80 fb 23 8b 4d 08 89 75 f8 8b 75 10 89 7d fc 8b 7d 14 89 95 94 fe ff ff 89 85 a4 fe ff ff");
 	FIND_OR_DIE(GetVisContents, "55 89 e5 83 ec 08 8b 55 08 8b 45 0c 0f b6 4d 10 80 fa 54 76 0b 31 c0 c9 c3");
 	FIND_OR_DIE(AddToScreen, "55 89 e5 83 ec 48 89 75 f8 0f b7 45 10 8b 75 08 66 3b 05 ?? ?? ?? ?? 89 7d fc 8b 7d 0c 89 5d f4 89 f2");
-	FIND_OR_DIE(RemoveFromScreen, "55 89 e5 53 83 ec 14 0f b7 45 10 66 3b 05 38 a9 67 00");
+	FIND_OR_DIE(RemoveFromScreen, "55 89 e5 53 83 ec 14 0f b7 45 10 66 3b 05 ?? ?? ?? ??");
 	FIND_OR_DIE(DelFilter, "55 89 e5 83 ec 18 89 5d f8 8b 5d 08 89 75 fc 8b 75 0c 8b 4b 6c 89 f0 d3 e8 3b 43 5c 89 c1");
 	FIND_OR_DIE(SendMapsClient, "55 0f b7 c0 89 e5 57 56 53 81 ec ?? ?? ?? ?? 89 04 24 89 85 ?? ?? ?? ?? e8 ?? ?? ?? ?? 85 c0 89 45 84 0f");
 	FIND_OR_DIE(CreateObj, "55 89 e5 57 56 53 83 ec 4c a1 ?? ?? ?? ?? 8b 7d 10 85 c0 0f 84 ?? ?? ?? ??");
@@ -104,7 +107,7 @@ bool Core::find_functions()
 	void* datum_table_ptr = Pocket::Sigscan::FindPattern(BYONDCORE, "55 89 E5 53 83 EC 44 8B 45 08 3B 05 ?? ?? ?? ?? 73 2C 8B 15 ?? ?? ?? ?? 8B 0C 82 85 C9 74 1F 8B 51 ??");
 	TRUE_OR_DIE(datum_table_ptr);
 	datum_table = std::make_unique<RefTable<Datum>>(datum_table_ptr, 20, 12);
-	client_table = std::make_unique<RefTable<Client>>((void*)AddToScreen, 0x26, 0x13);
+	client_table = std::make_unique<RefTable<Client, unsigned short>>((void*)AddToScreen, 0x26, 0x13);
 	obj_table = std::make_unique<RefTable<Obj>>((void*)GetVisContents, 0x7a, 0x72);
 	mob_table = std::make_unique<RefTable<Mob>>((void*)GetVisContents, 0x5a, 0x52);
 	image_table = std::make_unique<RefTable<ImageOverlay>>((void*)GetVisContents, 0x3a, 0x32);
@@ -115,14 +118,19 @@ bool Core::find_functions()
 	TRUE_OR_DIE(appearance_list_ptr);
 	appearance_list_table = *(TableHolder2**)appearance_list_ptr;
 
-	turf_table = *(TurfTableHolder**)((int)ChangeTurf + 0x32);
-	turf_shared_info_table = *(TurfSharedInfo****)((int)ChangeTurf + 0x2a);
-	turf_hashtable = *(TurfHashtableHolder**)((int)GetVisContents + 0xb9);
+	turf_table = *(int***)((int)ChangeTurf + 0x2a);
+	world_size = *(WorldSizeHolder**)((int)ChangeTurf + 0x22);
+	turf_shared_info_table = *(TurfSharedInfo****)((int)ChangeTurf + 0x32);
+	turf_hashtable = *(Turf****)((int)GetVisContents + 0xb9);
+	turf_hashtable_mask = *(unsigned short**)((int)GetVisContents + 0xb3);
+	turf_existence_table = *(unsigned char***)((int)GetVisContents + 0xa2);
 
 	// i love inlining i love inlining
-	animate_start_call = (unsigned int*)Pocket::Sigscan::FindPattern(BYONDCORE, "e8 ?? ?? ?? ?? 8b b5 ?? ?? ?? ?? 8b bd ?? ?? ?? ?? 89 34 24 89 7c 24 04 e8 ?? ?? ?? ??  89 c7 31 f6 8d 85 ?? ?? ?? ??", 1);
+	animate_start_call = (unsigned int*)Pocket::Sigscan::FindPattern(BYONDCORE, "e8 ?? ?? ?? ?? 8b b5 ?? ?? ?? ?? 8b bd ?? ?? ?? ?? 89 34 24 89 7c 24 04 e8 ?? ?? ?? ?? 89 c7 31 f6 8d 85 ?? ?? ?? ??", 1);
+	TRUE_OR_DIE(animate_start_call);
 	AnimateStartFun = (AnimateStartFunPtr)RELATIVE_CALL_RESOLVE(animate_start_call);
-	animate_end_jump = (unsigned int*)Pocket::Sigscan::FindPattern(BYONDCORE, "89 7c 24 04 e8 ?? ?? ?? ?? a1 ?? ?? ?? ?? 8b 0d ?? ?? ?? ?? 8b 1d ?? ?? ?? ?? 0f b7 50 42 8b 78 3c 0f b7 f2 83 c2 01 89 0c f7 89 5c f7 04 66 89 50 42 a1 ?? ?? ?? ?? 0f b7 50 42 8b 40 3c 8d 54 d0 f8 8b 02 8b 52 04 89 04 24 89 54 24 04 e8 ?? ?? ?? ?? 8b 3d ?? ?? ?? ?? e9 ?? ?? ?? ?? ", 90);
+	animate_end_jump = (unsigned int*)Pocket::Sigscan::FindPattern(BYONDCORE, "89 7c 24 04 e8 ?? ?? ?? ?? a1 ?? ?? ?? ?? 8b 0d ?? ?? ?? ?? 8b 1d ?? ?? ?? ?? 0f b7 50 42 8b 78 3c 0f b7 f2 83 c2 01 89 0c f7 89 5c f7 04 66 89 50 42 a1 ?? ?? ?? ?? 0f b7 50 42 8b 40 3c 8d 54 d0 f8 8b 02 8b 52 04 89 04 24 89 54 24 04 e8 ?? ?? ?? ?? 8b 3d ?? ?? ?? ?? e9 ?? ?? ?? ??", 90);
+	TRUE_OR_DIE(animate_end_jump);
 	original_animate_end_jump = (unsigned int)RELATIVE_CALL_RESOLVE(animate_end_jump);
 
 #endif

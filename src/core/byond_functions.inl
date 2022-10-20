@@ -8,7 +8,7 @@
 
 F(String*, , GetStringTableEntry, int stringId)
 F(void, , SetTurfAppearance, int appearance, int turf)
-F(void, , SetAppearance, Value atom, int appearance)
+F(void, REGPARM3, SetAppearance, Value atom, int appearance)
 F(void, , SpliceString, unsigned int id)
 F(void, , SetPixelX, Value atom, short pixel_x)
 F(void, , SetPixelY, Value atom, short pixel_y)
@@ -29,7 +29,7 @@ F(void, REGPARM2, Output, Value target, Value unk, Value thing)
 F(void*, , GetVisContents, Value thing, bool modify)
 F(bool, , AddToScreen, Value thing, unsigned short client)
 F(void, , RemoveFromScreen, Value thing, unsigned short client)
-F(void, , SendMapsClient, unsigned short client)
+F(void, REGPARM3, SendMapsClient, unsigned short client)
 
 #ifdef _WIN32
 F(void, _fastcall, SpliceAppearance, void* this_, int edx, int appearance) // it's actually __thiscall but c++ compilers are stupid

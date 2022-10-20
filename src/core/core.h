@@ -23,12 +23,16 @@ namespace Core {
 	extern std::unique_ptr<RefTable<Obj>> obj_table;
 	extern std::unique_ptr<RefTable<Datum>> datum_table;
 	//extern TableHolder2* list_table; //list list honk
-	extern std::unique_ptr<RefTable<Client>> client_table;
+	extern std::unique_ptr<RefTable<Client, unsigned short>> client_table;
 	extern std::unique_ptr<RefTable<Mob>> mob_table;
 	extern std::unique_ptr<RefTable<ImageOverlay>> image_table;
 	extern TableHolder2* appearance_list_table;
 	extern AppearanceTable** appearance_table;
-	extern TurfTableHolder* turf_table;
-	extern TurfHashtableHolder* turf_hashtable;
+	
+	extern int** turf_table;
+	extern Turf*** turf_hashtable;
+	extern unsigned short* turf_hashtable_mask;
+	extern unsigned char** turf_existence_table;
 	extern TurfSharedInfo*** turf_shared_info_table;
+	extern WorldSizeHolder* world_size;
 }
