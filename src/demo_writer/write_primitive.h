@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <string.h>
 #include "../core/byond_structures.h"
 
 void write_vlq(std::vector<unsigned char>& buf, int value);

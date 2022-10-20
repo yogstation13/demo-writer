@@ -72,9 +72,9 @@ Value animate_args;
 Value last_animate_appearance;
 
 char animate_end_trampoline[] = {
-	0xe8, 0, 0, 0, 0,
-	0xe9, 0, 0, 0, 0
-}
+	(char)0xE8, 0, 0, 0, 0,
+	(char)0xE9, 0, 0, 0, 0
+};
 
 void pre_animate_hook(void *some_struct, Value args) {
 	DecRefCount(animate_args);

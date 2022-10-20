@@ -1,4 +1,3 @@
-#pragma once
 #include "write_primitive.h"
 #include "demo_writer.h"
 #include "state_tracking.h"

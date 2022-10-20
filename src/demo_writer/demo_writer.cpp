@@ -81,7 +81,7 @@ HOOK_DEF(void, SpliceAppearance)(FASTCALL_THIS, int appearance) {
 #ifdef _WIN32
 HOOK_DEF(void _fastcall, DelFilter)(FASTCALL_THIS, int id) {
 #else
-HOOK_DEF(void, DelFilter)(FASTCALL_THIS_, int id) {
+HOOK_DEF(void, DelFilter)(FASTCALL_THIS, int id) {
 #endif
 	get_demo_id_flags(id).filter_written = false;
 	oDelFilter(PASS_FASTCALL_THIS, id);

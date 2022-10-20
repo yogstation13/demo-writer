@@ -11,6 +11,7 @@
 #else
 #define REGPARM3 __attribute__((regparm(3)))
 #define REGPARM2 __attribute__((regparm(2)))
+#define FASTCALL_THIS void* this_
 #define PASS_FASTCALL_THIS this_
 #endif
 

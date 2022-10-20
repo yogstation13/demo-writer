@@ -47,7 +47,7 @@ template<> struct LastListItem<Mob> {
 	unsigned char last_see_invisible = 0;
 };
 
-template<class Atom, unsigned char update_chunk_id, bool includes_loc = true, bool includes_stepxy = true, bool includes_mobextras = false>
+template<typename Atom, unsigned char update_chunk_id, bool includes_loc = true, bool includes_stepxy = true, bool includes_mobextras = false>
 class AtomUpdateBuffer {
 private:
 	int dirty_floor = 0;
@@ -284,18 +284,23 @@ public:
 	}
 };
 
+template<>
 inline int AtomUpdateBuffer<Turf, 0x2, false, false, false>::get_table_length() {
 	return Core::turf_table->turf_count;
 }
+template<>
 inline int AtomUpdateBuffer<Obj, 0x3, true, true, false>::get_table_length() {
 	return Core::obj_table->length;
 }
+template<>
 inline int AtomUpdateBuffer<Mob, 0x4, true, true, true>::get_table_length() {
 	return Core::mob_table->length;
 }
+template<>
 inline int AtomUpdateBuffer<ImageOverlay, 0x5, true, false, false>::get_table_length() {
 	return Core::image_table->length;
 }
+template<>
 inline Turf *AtomUpdateBuffer<Turf, 0x2, false, false, false>::get_element(int id) {
 	if (id < Core::turf_table->turf_count || Core::turf_table->existence_table[id] == 0) {
 		return nullptr;
@@ -306,30 +311,38 @@ inline Turf *AtomUpdateBuffer<Turf, 0x2, false, false, false>::get_element(int i
 	}
 	return ref;
 }
+template<>
 inline Obj* AtomUpdateBuffer<Obj, 0x3, true, true, false>::get_element(int id) {
 	return id < Core::obj_table->length ? Core::obj_table->elements[id] : nullptr;
 }
+template<>
 inline Mob* AtomUpdateBuffer<Mob, 0x4, true, true, true>::get_element(int id) {
 	return id < Core::mob_table->length ? Core::mob_table->elements[id] : nullptr;
 }
+template<>
 inline ImageOverlay* AtomUpdateBuffer<ImageOverlay, 0x5, true, false, false>::get_element(int id) {
 	return id < Core::image_table->length ? Core::image_table->elements[id] : nullptr;
 }
+template<>
 inline int AtomUpdateBuffer<Turf, 0x2, false, false, false>::get_appearance(Turf* turf, int id) {
 	if (id >= Core::turf_table->turf_count) return 0xFFFF;
 	int shared_id = Core::turf_table->shared_info_id_table[id];
 	return (*Core::turf_shared_info_table)[shared_id]->appearance;
 }
+template<>
 inline int AtomUpdateBuffer<Obj, 0x3, true, true, false>::get_appearance(Obj* obj, int id) {
 	return obj ? GetAppearance({ OBJ, {id} }) : 0xFFFF;
 }
+template<>
 inline int AtomUpdateBuffer<Mob, 0x4, true, true, true>::get_appearance(Mob* mob, int id) {
 	return mob ? GetAppearance({ MOB, {id} }) : 0xFFFF;
 }
+template<>
 inline bool AtomUpdateBuffer<Turf, 0x2, false, false, false>::does_element_exist(int id) {
 	return true;
 }
 // Because image serves as both a temporary appearance holder and a per-client, let's only write it if it's going to serve the latter purpose
+template<>
 inline int AtomUpdateBuffer<ImageOverlay, 0x5, true, false, false>::get_appearance(ImageOverlay* image, int id) {
 	return (image && image->loc.type != NULL_D) ? GetAppearance({ IMAGE, {id} }) : 0xFFFF;
 }
