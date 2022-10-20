@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include "byond_structures.h"
 #include <string>
 #include "find_functions.h"
