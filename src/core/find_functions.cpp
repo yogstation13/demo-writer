@@ -104,9 +104,9 @@ bool Core::find_functions()
 	FIND_OR_DIE(CreateMob, "55 89 e5 57 56 31 f6 53 83 ec 5c 8b 45 10 3b 05 ?? ?? ?? ??");
 	FIND_OR_DIE(GetAppearance, "55 89 e5 53 83 ec 24 8b 45 08 8b 55 0c 3c 50");
 
-	void* datum_table_ptr = Pocket::Sigscan::FindPattern(BYONDCORE, "55 89 E5 53 83 EC 44 8B 45 08 3B 05 ?? ?? ?? ?? 73 2C 8B 15 ?? ?? ?? ?? 8B 0C 82 85 C9 74 1F 8B 51 ??");
+	void* datum_table_ptr = Pocket::Sigscan::FindPattern(BYONDCORE, "8B 45 08 3B 05 ?? ?? ?? ?? 73 2C 8B 15 ?? ?? ?? ?? 8B 0C 82 85 C9 74 1F 8B 51 ??");
 	TRUE_OR_DIE(datum_table_ptr);
-	datum_table = std::make_unique<RefTable<Datum>>(datum_table_ptr, 20, 12);
+	datum_table = std::make_unique<RefTable<Datum>>(datum_table_ptr, 13, 5);
 	client_table = std::make_unique<RefTable<Client, unsigned short>>((void*)AddToScreen, 0x26, 0x13);
 	obj_table = std::make_unique<RefTable<Obj>>((void*)GetVisContents, 0x7a, 0x72);
 	mob_table = std::make_unique<RefTable<Mob>>((void*)GetVisContents, 0x5a, 0x52);
