@@ -71,11 +71,11 @@ bool Core::find_functions()
 	char* get_shared_turf_ptr = (char*)Pocket::Sigscan::FindPattern(BYONDCORE, "55 8b ec 8b 4d 08 3b 0d ?? ?? ?? ?? 73 12 a1 ?? ?? ?? ?? 8b 0c 88 a1 ?? ?? ?? ?? 8b 04 88 5d c3 33 c0 5d c3");
 	TRUE_OR_DIE(get_shared_turf_ptr)
 	turf_table = *(int***)(get_shared_turf_ptr + 15);
-	turf_existence_table = ((int)turf_table + 4);
+	turf_existence_table = (unsigned char**)((int)turf_table + 4);
 	world_size = (WorldSizeHolder*)((int)turf_table + 8);
 	turf_shared_info_table = *(TurfSharedInfo****)(get_shared_turf_ptr + 23);
 	turf_hashtable = *(Turf****)Pocket::Sigscan::FindPattern(BYONDCORE, "55 8b ec a1 ?? ?? ?? ?? 8b 55 08 23 c2 0f b7 c8 a1 ?? ?? ?? ??", 17);
-	turf_hashtable_mask = (int)(turf_hashtable + 8);
+	turf_hashtable_mask = (unsigned short*)((int)turf_hashtable + 8);
 	TRUE_OR_DIE(turf_hashtable);
 #else
 	FIND_OR_DIE(GetStringTableEntry, "55 89 E5 83 EC 18 8B 45 ?? 39 05 ?? ?? ?? ?? 76 ?? 8B 15 ?? ?? ?? ?? 8B 04 ??");
